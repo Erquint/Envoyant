@@ -38,16 +38,16 @@ def parse_hosts_file()
   unix_hosts_file_path = '/etc/hosts'
   endpoints = {}
   
-  if File.exist?(windows_hosts_file_path)
+  if File.exist?(windows_hosts_file_path) then
     hosts_file_path = windows_hosts_file_path
-  elsif File.exist?(unix_hosts_file_path)
+  elsif File.exist?(unix_hosts_file_path) then
     hosts_file_path = unix_hosts_file_path
   else
     dual_log(level: :fatal, message: "No `hosts` file found at neither #{unix_hosts_file_path} nor #{windows_hosts_file_path}!")
   end
   
   File.foreach(hosts_file_path) do |line|
-    if matches = line.downcase.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) +([^ ]+) +# *Envoyant *: *(\d{1,5})\s*$/)
+    if matches = line.downcase.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) +([a-z0-9\.\-]+) +# *Envoyant *: *(\d{1,5})\s*$/i) then
       _, ip, hostname, port = matches.to_a
       endpoints[hostname] = "#{ip}:#{port}"
     end
@@ -55,7 +55,7 @@ def parse_hosts_file()
   
   endpoints_string = endpoints.map{next "#{_1[0]} => #{_1[1]}"}.join("\r\n")
   
-  if endpoints.any?
+  if endpoints.any? then
     dual_log(level: :info, message: "Parsed endpoints from hosts file:\r\n#{endpoints_string}")
   else
     dual_log(level: :fatal, message: <<~TUTORIAL)
