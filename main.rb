@@ -9,16 +9,10 @@ require 'zlib'
 require 'logger'
 require 'optparse'
 
-# ENDPOINTS = {
-#   'sillytavern.local' => '127.0.0.1:8000',
-#   'comfyui.local' => '127.0.0.1:8188',
-#   'searx.local' => '127.0.0.1:8888'
-# }.freeze
 LOG_FILE_PATH = ".\\logs\\#{DateTime.now.to_s.gsub(?:, ?-)}.log".freeze
 LOGS_DIRECTORY = File.dirname(LOG_FILE_PATH).freeze
 Dir.mkdir(LOGS_DIRECTORY) unless File.directory?(LOGS_DIRECTORY)
 FILE_LOGGER = Logger.new(LOG_FILE_PATH, level: Logger::DEBUG, binmode: true).freeze
-# FILE_LOGGER = Logger.new(LOG_FILE_PATH, level: Logger::INFO, binmode: true).freeze
 TERMINAL_LOGGER = Logger.new(STDOUT, level: Logger::INFO, binmode: true)
 LOGGER_SEVERITY_COLORS = {
   "DEBUG" =>   "\e[37m",   # White
@@ -33,9 +27,7 @@ ORIGINAL_LOGGER_FORMATTER = Logger::Formatter.new
 
 TERMINAL_LOGGER.formatter = proc do |severity, datetime, progname, msg|
   color = LOGGER_SEVERITY_COLORS[severity] || ""
-  # Use the original formatter to get the full line, then colorize the severity
   line = ORIGINAL_LOGGER_FORMATTER.call(severity, datetime, progname, msg)
-  # Replace only the first occurrence of the severity with the colored version
   line.sub(severity, "#{color}#{severity}#{COLOR_RESET}")
 end
 
@@ -106,7 +98,6 @@ def dual_log(level: :info, message: '', headers: '', body: '')
   file_message = "[#{thread_label}] #{message}\r\n#{headers}#{body}"
   
   if body.empty? then
-  # unless body then
     terminal_message = file_message
   else
     body_size = body.bytesize
@@ -115,7 +106,6 @@ def dual_log(level: :info, message: '', headers: '', body: '')
   end
   
   FILE_LOGGER.send(level, file_message)
-  # FILE_LOGGER.send(level, terminal_message)
   TERMINAL_LOGGER.send(level, terminal_message)
   
   return nil
@@ -124,8 +114,6 @@ end
 def handle_client(client_socket, keepalive)
   begin
     backend_socket = nil
-    # keepalive = true
-    # keepalive = false
     
     loop do
       request_headers = ''
@@ -159,7 +147,6 @@ def handle_client(client_socket, keepalive)
       backend_socket = TCPSocket.new(backend_ip, backend_port)
       backend_socket.binmode
       proxied_request_headers = request_headers.gsub(host_match, "#{backend_ip}:#{backend_port}")
-      # proxied_request_body = request_body.gsub(host_match, "#{ip}:#{port}")
       proxied_request_body = request_body
       
       unless keepalive || proxied_request_headers.match(/Upgrade: websocket/i) then
@@ -182,8 +169,6 @@ def handle_client(client_socket, keepalive)
       end
       
       client_socket.write(response_headers)
-      # ports_string = make_ports_string(client_socket: client_socket, backend_socket: backend_socket, towards: :client)
-      # dual_log(level: :info, message: "Relayed headers #{ports_string}:", headers: response_headers)
       
       if response_headers.match(/Upgrade: websocket/i) then
         ports_string = make_ports_string(client_socket: client_socket, backend_socket: backend_socket, towards: :client)
@@ -229,20 +214,14 @@ def handle_client(client_socket, keepalive)
           line = backend_socket.gets
           response_body += line
           raise 'Nil read in chunk header!' if line.nil?
-          # client_socket.write(line)
-          # dual_log(level: :info, body: line)
           chunk_size = line.strip.hex
           chunk_data = backend_socket.read(chunk_size)
           response_body += chunk_data
-          # client_socket.write(chunk_data)
-          # dual_log(level: :info, body: chunk_data)
           crlf = backend_socket.gets
           raise 'Nil read in chunk CRLF!' if line.nil?
           response_body += crlf
           ports_string = make_ports_string(client_socket: client_socket, backend_socket: backend_socket, towards: :client)
           dual_log(level: :warn, message: "Relaying malformed chunk terminator #{ports_string}:", headers: response_headers, body: response_body) unless crlf.match(/^\r\n$/)
-          # client_socket.write(crlf)
-          # dual_log(level: :info, body: crlf)
           break if chunk_size == 0
         end
       elsif length_string = response_headers[/Content-Length: (\d+)/i, 1] then
@@ -267,7 +246,6 @@ def handle_client(client_socket, keepalive)
       ports_string = make_ports_string(client_socket: client_socket, backend_socket: backend_socket, towards: :client)
       dual_log(level: :info, message: "Relayed response #{ports_string}:", headers: response_headers, body: response_body)
       all_headers = proxied_request_headers + response_headers
-      # keepalive = true if all_headers.scan(/Connection: keep-alive/i).size > 2
       break if all_headers.match(/Connection: close/i)
     end
   rescue => e
@@ -303,7 +281,6 @@ else
 end
 
 trap("INT") do
-  # dual_log(level: :info, message: "Interrupt received, shutting down server.")
   server.close rescue nil
   FILE_LOGGER.close rescue nil
   TERMINAL_LOGGER.close rescue nil
