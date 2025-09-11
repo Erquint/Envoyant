@@ -95,7 +95,7 @@ end
 
 def dual_log(level: :info, message: '', headers: '', body: '')
   thread_label = Thread.current.native_thread_id
-  file_message = "[#{thread_label}] #{message}\r\n#{headers}#{body}"
+  file_message = "[#{thread_label}] #{message}\r\n#{headers}#{body}\r\n"
   
   if body.empty? then
     terminal_message = file_message
@@ -297,3 +297,12 @@ end
 
 FILE_LOGGER.close rescue nil
 TERMINAL_LOGGER.close rescue nil
+
+# Todo:
+# E, [2025-09-05T18:16:07.664079 #2224] ERROR -- : [34952] No backend hostname '' found for 50723-=>8000
+# 
+# E, [2025-09-05T18:16:07.664243 #2224] ERROR -- : [34952] Error handling connection 50723<=>8000: Aborting thread.
+# G:/Projects/rb/Envoyant/main.rb:143:in `block in handle_client'
+# G:/Projects/rb/Envoyant/main.rb:118:in `loop'
+# G:/Projects/rb/Envoyant/main.rb:118:in `handle_client'
+# G:/Projects/rb/Envoyant/main.rb:294:in `block (2 levels) in <main>'
